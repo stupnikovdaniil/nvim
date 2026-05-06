@@ -1,0 +1,38 @@
+# Vim/Neovim swap/backup/undo
+*.swp
+*.swo
+*.swn
+*~
+.*.sw?
+*.tmp
+*.bak
+
+# OS junk
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Lazy/plugin local state
+.lazy/
+lazy/
+plugin/
+pack/
+
+# Local/session files
+Session.vim
+.nvim.lua
+.nvimrc
+.exrc
+
+# Logs
+*.log
+
+# Generated docs/tags
+tags
+tags.lock
+tags.temp
+
+# Local env
+.env
+.env.*
+!.env.example
