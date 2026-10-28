@@ -28,10 +28,6 @@ local function set(win, list)
     vim.api.nvim_win_set_var(win, "pinbar", list)
 end
 
-local function basename(p)
-    return (p == "" and "[No Name]") or vim.fn.fnamemodify(p, ":t")
-end
-
 local function to_parts(full)
     if full == "" then return { "[No Name]" } end
     local p = vim.fn.fnamemodify(full, ":p")
@@ -113,7 +109,7 @@ local function refresh_winbar(win)
             lbl = (parent ~= "" and (parent .. "/" .. base)) or base
         end
         if vim.bo[b].modified then lbl = lbl .. "*" end
-        local text = string.format("[%d %s]", i, lbl)
+        local text = string.format("[%d %s]", i, (lbl:gsub("%%", "%%%%")))
         if b == cur then
             table.insert(segs, "%#Title#" .. text .. "%*")
         else

@@ -20,7 +20,6 @@ return {
         "hrsh7th/cmp-nvim-lsp",
         "hrsh7th/cmp-buffer",
         "hrsh7th/cmp-path",
-        "hrsh7th/cmp-cmdline",
         "hrsh7th/nvim-cmp",
         "L3MON4D3/LuaSnip",
         "saadparwaiz1/cmp_luasnip",
@@ -33,54 +32,9 @@ return {
         vim.api.nvim_create_autocmd("LspAttach", {
             group = lsp_group,
             callback = function(e)
-                local opts = function(desc)
-                    return { buffer = e.buf, silent = true, desc = desc }
-                end
-
-                vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts("LSP: definition"))
-                vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts("LSP: declaration"))
-                vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts("LSP: implementation"))
-                vim.keymap.set("n", "gy", vim.lsp.buf.type_definition, opts("LSP: type definition"))
-                vim.keymap.set("n", "gr", vim.lsp.buf.references, opts("LSP: references"))
-
-                vim.keymap.set("n", "K", vim.lsp.buf.hover, opts("LSP: hover"))
-                vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts("LSP: rename"))
-                vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts("LSP: code action"))
-
-                vim.keymap.set("n", "<leader>df", vim.diagnostic.open_float, opts("Diagnostic: line details"))
-                vim.keymap.set("n", "]d", vim.diagnostic.goto_next, opts("Diagnostic: next"))
-                vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, opts("Diagnostic: previous"))
-
-                vim.keymap.set("i", "<C-h>", vim.lsp.buf.signature_help, opts("LSP: signature help"))
+                require("config.keys").apply("lsp", { buffer = e.buf })
             end,
         })
-        ------------------------------------------------------------
-        -- FORMATTERS (conform.nvim)
-        ------------------------------------------------------------
-        require("conform").setup({
-            format_on_save = { timeout_ms = 5000, lsp_format = "fallback" },
-            formatters_by_ft = {
-                lua        = { "stylua" },
-                python     = { "black", "isort" },
-                go         = { "gofumpt", "goimports" },
-                rust       = { "rustfmt" },
-                javascript = { "prettier" },
-                typescript = { "prettier" },
-                json       = { "prettier" },
-                yaml       = { "prettier" },
-                markdown   = { "mdformat" },
-                terraform  = { "terraform_fmt" },
-                hcl        = { "terraform_fmt" },
-                sh         = { "shfmt" },
-                bash       = { "shfmt" },
-                toml       = { "taplo" },
-                sql        = { "sqlfluff" },
-            },
-            formatters = {
-                sqlfluff = { prepend_args = { "--dialect", "postgres" } },
-            },
-        })
-
         ------------------------------------------------------------
         -- CMP + CAPABILITIES
         ------------------------------------------------------------
@@ -99,155 +53,53 @@ return {
         require("fidget").setup({})
         require("mason").setup()
 
-        -- tsserver → ts_ls (совместимость)
-        local has_ts_ls = pcall(function()
-            return require("lspconfig.configs").ts_ls
-        end)
-        local TS_NAME = has_ts_ls and "ts_ls" or "tsserver"
+        -- Configure servers before Mason enables them (Neovim 0.11+).
+        vim.lsp.config("*", { capabilities = capabilities })
+        vim.lsp.config("lua_ls", {
+            root_markers = root_files,
+            settings = {
+                Lua = {
+                    diagnostics = { globals = { "vim" } },
+                    format = {
+                        enable = true,
+                        defaultConfig = { indent_style = "space", indent_size = "4" },
+                    },
+                },
+            },
+        })
+        vim.lsp.config("ts_ls", {
+            root_markers = { "tsconfig.json", "package.json", ".git" },
+        })
+        vim.lsp.config("yamlls", {
+            settings = {
+                yaml = {
+                    schemaStore = {
+                        enable = true,
+                        url = "https://www.schemastore.org/api/json/catalog.json",
+                    },
+                    schemas = {
+                        ["https://json.schemastore.org/github-workflow.json"] = ".github/workflows/*.{yml,yaml}",
+                        ["https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json"] = "docker-compose*.{yml,yaml}",
+                        ["https://json.schemastore.org/ansible-playbook.json"] = {
+                            "playbooks/**/*.{yml,yaml}", "ansible/**/*.{yml,yaml}",
+                        },
+                    },
+                    format = { enable = true },
+                    validate = true,
+                },
+            },
+        })
+        vim.lsp.config("jsonls", {
+            settings = { json = { validate = { enable = true }, schemaDownload = { enable = true } } },
+        })
+        vim.lsp.config("ansiblels", { filetypes = { "yaml", "yaml.ansible", "ansible" } })
+        vim.lsp.config("sqls", { settings = { sqls = { connections = {} } } })
 
         require("mason-lspconfig").setup({
             ensure_installed = {
-                -- vim-семейство
-                "vimls",
-
-                -- основные языки
-                "lua_ls",
-                "rust_analyzer",
-                "gopls",
-                "pyright",
-                "bashls",
-
-                -- фронт-энд
-                TS_NAME,
-                "eslint",
-                "jsonls",
-                "yamlls",
-
-                -- конфигурационные форматы
-                "taplo",
-                "dockerls",
-                "terraformls",
-
-                -- разметка и документация
-                "marksman",
-
-                -- SQL и шаблоны
-                "sqls",
-                "templ",
-
-                -- DevOps
-                "ansiblels",
-            },
-
-            handlers = {
-                --------------------------------------------------------
-                -- Default handler for any installed server
-                --------------------------------------------------------
-                function(server_name)
-                    require("lspconfig")[server_name].setup({
-                        capabilities = capabilities,
-                    })
-                end,
-
-                --------------------------------------------------------
-                -- CUSTOM CONFIGS
-                --------------------------------------------------------
-
-                ["lua_ls"] = function()
-                    local util = require("lspconfig.util")
-                    require("lspconfig").lua_ls.setup({
-                        capabilities = capabilities,
-                        root_dir = util.root_pattern(unpack(root_files)),
-                        settings = {
-                            Lua = {
-                                diagnostics = { globals = { "vim" } },
-                                format = {
-                                    enable = true,
-                                    defaultConfig = {
-                                        indent_style = "space",
-                                        indent_size = "2",
-                                    },
-                                },
-                            },
-                        },
-                    })
-                end,
-
-                [TS_NAME] = function()
-                    local util = require("lspconfig.util")
-                    require("lspconfig")[TS_NAME].setup({
-                        capabilities = capabilities,
-                        root_dir = util.root_pattern("tsconfig.json", "package.json", ".git"),
-                    })
-                end,
-
-                ["yamlls"] = function()
-                    local lspconfig = require("lspconfig")
-                    lspconfig.yamlls.setup({
-                        capabilities = capabilities,
-                        settings = {
-                            yaml = {
-                                schemaStore = {
-                                    enable = true,
-                                    url =
-                                    "https://www.schemastore.org/api/json/catalog.json",
-                                },
-                                schemas = {
-                                    ["https://json.schemastore.org/github-workflow.json"] =
-                                    ".github/workflows/*.{yml,yaml}",
-                                    ["https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json"] =
-                                    "docker-compose*.{yml,yaml}",
-                                    ["https://json.schemastore.org/ansible-playbook.json"] = {
-                                        "playbooks/**/*.{yml,yaml}",
-                                        "ansible/**/*.{yml,yaml}",
-                                    },
-                                },
-                                format = { enable = true },
-                                validate = true,
-                            },
-                        },
-                    })
-                end,
-
-                ["jsonls"] = function()
-                    require("lspconfig").jsonls.setup({
-                        capabilities = capabilities,
-                        settings = {
-                            json = {
-                                validate = { enable = true },
-                                schemaDownload = { enable = true },
-                            },
-                        },
-                    })
-                end,
-
-                ["ansiblels"] = function()
-                    require("lspconfig").ansiblels.setup({
-                        capabilities = capabilities,
-                        filetypes = { "yaml", "yaml.ansible", "ansible" },
-                    })
-                end,
-
-                ["terraformls"] = function()
-                    require("lspconfig").terraformls.setup({
-                        capabilities = capabilities,
-                    })
-                end,
-
-                ["sqls"] = function()
-                    require("lspconfig").sqls.setup({
-                        capabilities = capabilities,
-                        settings = {
-                            sqls = {
-                                connections = {
-                                    -- пример:
-                                    -- { driver = "postgresql",
-                                    --   dataSourceName = "host=127.0.0.1 port=5432 user=gpadmin dbname=postgres sslmode=disable" },
-                                },
-                            },
-                        },
-                    })
-                end,
+                "vimls", "lua_ls", "rust_analyzer", "gopls", "pyright", "bashls",
+                "ts_ls", "eslint", "jsonls", "yamlls", "taplo", "dockerls",
+                "terraformls", "marksman", "sqls", "templ", "ansiblels",
             },
         })
 

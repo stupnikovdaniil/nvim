@@ -32,7 +32,10 @@ return {
 				{ "diagnostics", sources = { "nvim_diagnostic" } },
 			},
 			lualine_x = {
-				{ "encoding" },
+				{ function()
+                    return require("config.formatting").disabled() and "fmt:off" or "fmt:on"
+                end },
+                { "encoding" },
 				{ "fileformat" },
 				{ "filetype" },
 			},

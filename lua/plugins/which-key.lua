@@ -26,21 +26,6 @@ return {
             mappings = true,
         },
 
-        spec = {
-            { "<leader>c", group = "code/conform" },
-            { "<leader>d", group = "diagnostics/delete/pins" },
-            { "<leader>f", group = "find/telescope" },
-            { "<leader>g", group = "git/fugitive" },
-            { "<leader>p", group = "pinbar/paste" },
-            { "<leader>s", group = "style/theme" },
-            { "<leader>t", group = "tree/navigation" },
-            { "<leader>w", group = "windows" },
-            { "<leader>x", group = "trouble/diagnostics" },
-
-            { "g",         group = "goto/LSP" },
-            { "z",         group = "fold/tree" },
-            { "[",         group = "previous" },
-            { "]",         group = "next" },
-        },
+        spec = require("config.keys").groups,
     },
 }

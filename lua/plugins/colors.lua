@@ -31,19 +31,7 @@ local function ColorMyPencils(color)
     vim.api.nvim_set_hl(0, "NotifyBackground", { bg = "#232136" })
 end
 
-local function setup_theme_keymaps()
-    vim.keymap.set("n", "<leader>sr", function()
-        ColorMyPencils("rose-pine-moon")
-    end, { desc = "Theme: Rose Pine" })
-
-    vim.keymap.set("n", "<leader>st", function()
-        ColorMyPencils("tokyonight")
-    end, { desc = "Theme: Tokyo Night" })
-
-    vim.keymap.set("n", "<leader>sg", function()
-        ColorMyPencils("gruvbox")
-    end, { desc = "Theme: Gruvbox" })
-
+local function setup_theme_command()
     vim.api.nvim_create_user_command("ColorUse", function(opts)
         ColorMyPencils(opts.args)
     end, {
@@ -71,7 +59,8 @@ return {
             })
 
             ColorMyPencils("rose-pine-moon")
-            setup_theme_keymaps()
+            setup_theme_command()
+            require("config.keys").apply("themes")
         end,
     },
 
